@@ -1,9 +1,11 @@
-import request from 'request';
-import readline from 'readline';
-import chalk from 'chalk';
-import storage from 'node-persist';
-import config from './config.js';
-import {
+const request = require('request');
+const readline = require('readline');
+const chalk = require('chalk');
+const storage = require('node-persist');
+const config = require('./config');
+const utils = require('./utils');
+
+const {
   showConfigTips,
   message,
   clearUserMessage,
@@ -12,7 +14,7 @@ import {
   gptSay,
   isProxyUrl,
   showUsageTips,
-} from './utils.js';
+} = utils;
 
 // vars
 let inputing = false;

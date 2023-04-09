@@ -1,15 +1,15 @@
-import chalk from 'chalk';
-import config from './config.js';
+const chalk = require('chalk');
+const config = require('./config');
 
-export function message(content) {
+function message(content) {
   return { role: 'user', content: `${content}\n` };
 }
 
-export function clearUserMessage(messages = []) {
+function clearUserMessage(messages = []) {
   return messages.filter((item) => item.role !== 'user');
 }
 
-export function get(obj, path, defaultValue) {
+function get(obj, path, defaultValue) {
   // 如果path包含[n]，则匹配[n]，并使用正则表达式替换为.加上数字
   path = path.replace(/\[(\d+)\]/g, '.$1');
   // 将字符串转为数组
@@ -22,7 +22,7 @@ export function get(obj, path, defaultValue) {
   return obj === undefined ? defaultValue : obj;
 }
 
-export function repeat(string, n) {
+function repeat(string, n) {
   let result = '';
   for (let i = 0; i < n; i++) {
     result += string;
@@ -30,19 +30,30 @@ export function repeat(string, n) {
   return result;
 }
 
-export function gptSay(text) {
+function gptSay(text) {
   if (typeof text === 'undefined') return chalk.yellow('> chatgpt: ');
   console.log(chalk.yellow(`> chatgpt: ${chalk.cyan(text)}`));
 }
 
-export function showUsageTips() {
+function showUsageTips() {
   console.log(chalk.gray(config.usageTips));
 }
 
-export function showConfigTips() {
+function showConfigTips() {
   console.log(chalk.gray(config.shellTips));
 }
 
-export function isProxyUrl(url) {
+function isProxyUrl(url) {
   return /http:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}/.test(url);
 }
+
+module.exports = {
+  message,
+  clearUserMessage,
+  get,
+  repeat,
+  gptSay,
+  showUsageTips,
+  showConfigTips,
+  isProxyUrl,
+};

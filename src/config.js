@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+const chalk = require('chalk');
 const shellTips = `
 如何设置：
     1、如何设置API KEY
@@ -30,4 +30,4 @@ const config = {
   shellTips,
   usageTips,
 };
-export default config;
+module.exports = config;
