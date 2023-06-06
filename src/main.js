@@ -75,7 +75,12 @@ function watchUserInput() {
 }
 
 function addContext(content) {
-  postData.messages.push(message(content));
+  if (settings.continuous === 'Y') {
+    postData.messages.push(message(content));
+  } else {
+    postData.messages = config.messages;
+    postData.messages.push(message(content));
+  }
 }
 
 function clear() {
