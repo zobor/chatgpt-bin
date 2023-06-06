@@ -1,5 +1,6 @@
 const chalk = require('chalk');
 const config = require('./config');
+const settings = require('./settings');
 
 function message(content) {
   return { role: 'user', content: `${content}\n` };
@@ -31,8 +32,9 @@ function repeat(string, n) {
 }
 
 function gptSay(text) {
-  if (typeof text === 'undefined') return chalk.yellow('> chatgpt: ');
-  console.log(chalk.yellow(`> chatgpt: ${chalk.cyan(text)}`));
+  const user = `${settings.continuous === 'Y' ? 'chatgpt(连续对话)' : 'chatgpt'}`;
+  if (typeof text === 'undefined') return chalk.yellow(`> ${user}: `);
+  console.log(chalk.yellow(`> ${user}: ${chalk.cyan(text)}`));
 }
 
 function showUsageTips() {

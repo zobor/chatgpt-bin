@@ -4,6 +4,7 @@ const chalk = require('chalk');
 const storage = require('node-persist');
 const config = require('./config');
 const utils = require('./utils');
+const settings = require('./settings');
 
 const {
   showConfigTips,
@@ -24,14 +25,11 @@ const postData = {
   messages: config.messages,
   stream: config.stream,
 };
-const settings = {
-  proxy: process.env.http_proxy || process.env.https_proxy,
-  key: '',
-};
 
 // entry
 (async () => {
   await storage.init({ dir: `${process.env.HOME}/.chat-gpt` });
+  settings.continuous = await storage.getItem('CONTINUOUS');
   const apiKey = await storage.getItem('API_KEY');
   if (apiKey) {
     settings.key = apiKey;
@@ -50,6 +48,7 @@ const settings = {
   gptSay('启动配置检查...');
   gptSay(`${settings.proxy ? '✔' : '✘'} 代理配置`);
   gptSay(`${settings.key ? '✔' : '✘'} API KEY配置`);
+  gptSay(`${settings.continuous === 'Y' ? '✔' : '✘'} 连续对话`);
 
   // 开始提问
   ask();
@@ -86,7 +85,7 @@ function clear() {
 function ask() {
   inputing = true;
   gptSay('输入你的问题');
-  readUserInput.question(chalk.yellow(`> ${repeat(' ', 5)}我: `), (content) => {
+  readUserInput.question(chalk.yellow(`> ${repeat(' ', 5)}我: `), async(content) => {
     inputing = false;
 
     if (content && content.startsWith('$config.')) {
@@ -123,6 +122,13 @@ function ask() {
           gptSay('配置已重置');
           ask();
           break;
+        case 'continuous':
+          if (['Y', 'N'].includes(v.toUpperCase())) {
+            storage.setItem('CONTINUOUS', v.toUpperCase());
+            gptSay('连续对话配置成功');
+            ask();
+          }
+          break;
         case '':
           gptSay('请输入指令');
           showUsageTips();
@@ -146,9 +152,18 @@ function ask() {
       case 'q':
         process.exit(0);
       case 'clear':
+      case 'c':
         clear();
         gptSay('记录已清除');
         console.clear();
+        ask();
+        return;
+      case 'aaa':
+        const v = await storage.getItem('CONTINUOUS');
+        const newV = v === 'Y' ? 'N' : 'Y';
+        await storage.setItem('CONTINUOUS', newV);
+        settings.continuous = newV;
+        gptSay(`已切换${settings.continuous === 'Y' ? '连续对话' : '单句对话'}模式`);
         ask();
         return;
       case '':
