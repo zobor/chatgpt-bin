@@ -240,7 +240,17 @@ function requestGPT() {
       process.stdout.write(gptSay());
     })
     .on('error', (err) => {
-      console.error('onError', err);
-      process.exit(0);
+      gptSay(`[ERROR]：${err.message}`);
+      setTimeout(() => {
+        ask();
+      }, 1000);
     });
 }
+
+// catch global error and continue run
+process.on('uncaughtException', async (err) => {
+  gptSay(`[ERROR]：${err.message}`);
+  setTimeout(() => {
+    ask();
+  }, 1000);
+});
