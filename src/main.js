@@ -28,12 +28,17 @@ const postData = {
 
 // entry
 (async () => {
+  // CONTINUOUS
   await storage.init({ dir: `${process.env.HOME}/.chat-gpt` });
   settings.continuous = await storage.getItem('CONTINUOUS');
+
+  // API-KEY
   const apiKey = await storage.getItem('API_KEY');
   if (apiKey) {
     settings.key = apiKey;
   }
+
+  // PROXY
   if (settings.proxy) {
     gptSay(`检测到terminal已配置代理:${config.proxy}`);
   } else {
@@ -42,6 +47,9 @@ const postData = {
       settings.proxy = configProxy;
     }
   }
+
+  // SESSION
+  settings.session = await storage.getItem('SESSION');
 
   watchUserInput();
 
@@ -134,6 +142,12 @@ function ask() {
             ask();
           }
           break;
+        case 'session':
+          storage.setItem('SESSION', v.trim());
+          settings.session = v.trim();
+          gptSay('session设置成功，你可以使用usage指令查询chatgpt的使用情况');
+          ask();
+          break;
         case '':
           gptSay('请输入指令');
           showUsageTips();
@@ -170,6 +184,11 @@ function ask() {
         settings.continuous = newV;
         gptSay(`已切换${settings.continuous === 'Y' ? '连续对话' : '单句对话'}模式`);
         ask();
+        return;
+      case 'usage':
+        requestUsage(() => {
+          ask();
+        });
         return;
       case '':
         gptSay('请输入问题后再回车');
@@ -254,3 +273,42 @@ process.on('uncaughtException', async (err) => {
     ask();
   }, 1000);
 });
+function requestUsage(callback) {
+  if (!settings.session) {
+    gptSay('请先设置sessionId,再使用usage指令');
+    gptSay('Example: $config.session=xxx');
+    ask();
+    return;
+  }
+  const options = {
+    url: 'https://api.openai.com/dashboard/billing/credit_grants',
+    params: {},
+    headers: {
+      pragma: 'no-cache',
+      'cache-control': 'no-cache',
+      authorization: `Bearer ${settings.session}`,
+      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+    },
+    strictSSL: false,
+    rejectUnauthorized: false,
+    followRedirect: false,
+    ...(settings.proxy ? { proxy: settings.proxy } : {}),
+  };
+  request(options, (error, response, body) => {
+    if (error) {
+      gptSay(error.message);
+    } else {
+      try {
+        const data = JSON.parse(body);
+        console.table([{
+          used: data.total_used,
+          available: data.total_available,
+          total: data.total_granted,
+        }]);
+      } catch(err) {
+        gptSay(err.message);
+      }
+    }
+    callback && callback();
+  });
+}
