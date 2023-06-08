@@ -13,10 +13,11 @@ const usageTips = `
     ${chalk.magenta('exit')}: 退出
     ${chalk.magenta('aaa')}: 切换连续对话、逐句对话
     ${chalk.magenta('clear')}: 清除上下文（给ChatGPT提新的问题）
+    ${chalk.magenta('reset')}: 清空配置
     ${chalk.magenta('$config.key=xyz')}: 设置ChatGPT的API KEY
     ${chalk.magenta('$config.proxy=http://127.0.0.1:8081')}: 设置代理
     ${chalk.magenta('$config.continuous=Y')}: 开启连续对话
-    ${chalk.magenta('$config.reset=true')}: 清空设置
+    ${chalk.magenta('$config.session=xxx')}: 设置会话，以便查询openkey 使用情况
 `;
 
 const config = {

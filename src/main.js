@@ -129,12 +129,6 @@ function ask() {
           gptSay('API KEY配置成功');
           ask();
           break;
-        case 'reset':
-          storage.removeItem('PROXY');
-          storage.removeItem('API_KEY');
-          gptSay('配置已重置');
-          ask();
-          break;
         case 'continuous':
           if (['Y', 'N'].includes(v.toUpperCase())) {
             storage.setItem('CONTINUOUS', v.toUpperCase());
@@ -190,6 +184,10 @@ function ask() {
           ask();
         });
         return;
+      case 'reset':
+        await reset();
+        ask();
+        return;
       case '':
         gptSay('请输入问题后再回车');
         ask();
@@ -199,6 +197,14 @@ function ask() {
     addContext(content);
     requestGPT();
   });
+}
+
+async function reset() {
+  await storage.removeItem('PROXY');
+  await storage.removeItem('API_KEY');
+  await storage.removeItem('CONTINUOUS');
+  await storage.removeItem('SESSION');
+  gptSay('配置已重置');
 }
 
 function requestGPT() {
