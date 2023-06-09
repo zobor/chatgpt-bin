@@ -46,7 +46,7 @@ function showConfigTips() {
 }
 
 function isProxyUrl(url) {
-  return /http:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}/.test(url);
+  return /(http|socks\d?):\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}/.test(url);
 }
 
 module.exports = {
