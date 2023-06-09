@@ -2,9 +2,12 @@ const request = require('request');
 const readline = require('readline');
 const chalk = require('chalk');
 const storage = require('node-persist');
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const config = require('./config');
 const utils = require('./utils');
 const settings = require('./settings');
+
+let proxy;
 
 const {
   showConfigTips,
@@ -16,6 +19,12 @@ const {
   isProxyUrl,
   showUsageTips,
 } = utils;
+
+function checkProxy() {
+  if (settings.proxy && settings.proxy.startsWith('socks')) {
+    proxy = new SocksProxyAgent(settings.proxy);
+  }
+}
 
 // vars
 let inputing = false;
@@ -41,10 +50,12 @@ const postData = {
   // PROXY
   if (settings.proxy) {
     gptSay(`检测到terminal已配置代理:${config.proxy}`);
+    checkProxy();
   } else {
     const configProxy = await storage.getItem('PROXY');
     if (configProxy) {
       settings.proxy = configProxy;
+      checkProxy();
     }
   }
 
@@ -98,105 +109,110 @@ function clear() {
 function ask() {
   inputing = true;
   gptSay('输入你的问题');
-  readUserInput.question(chalk.yellow(`> ${repeat(' ', 5)}我: `), async(content) => {
-    inputing = false;
+  readUserInput.question(
+    chalk.yellow(`> ${repeat(' ', 5)}我: `),
+    async (content) => {
+      inputing = false;
 
-    if (content && content.startsWith('$config.')) {
-      const shell = content.replace(/^\$config./, '');
-      const params = shell.split('=');
-      if (params.length !== 2) {
-        gptSay('参数错误');
-        showConfigTips();
-        ask();
-        return;
-      }
-      const [key, value = ''] = params;
-      const v = value.trim();
-      switch (key.toLowerCase().trim()) {
-        case 'proxy':
-          if (isProxyUrl(v)) {
-            storage.setItem('PROXY', v);
-            settings.proxy = v;
-            gptSay('代理配置成功');
-          } else {
-            gptSay('代理url格式错误，参考如下格式:http://127.0.0.1:8081');
-          }
+      if (content && content.startsWith('$config.')) {
+        const shell = content.replace(/^\$config./, '');
+        const params = shell.split('=');
+        if (params.length !== 2) {
+          gptSay('参数错误');
+          showConfigTips();
           ask();
-          break;
-        case 'key':
-          storage.setItem('API_KEY', v);
-          settings.key = v;
-          gptSay('API KEY配置成功');
-          ask();
-          break;
-        case 'continuous':
-          if (['Y', 'N'].includes(v.toUpperCase())) {
-            storage.setItem('CONTINUOUS', v.toUpperCase());
-            gptSay('连续对话配置成功');
+          return;
+        }
+        const [key, value = ''] = params;
+        const v = value.trim();
+        switch (key.toLowerCase().trim()) {
+          case 'proxy':
+            if (isProxyUrl(v)) {
+              storage.setItem('PROXY', v);
+              settings.proxy = v;
+              gptSay('代理配置成功');
+            } else {
+              gptSay('代理url格式错误，参考如下格式:http://127.0.0.1:8081');
+            }
             ask();
-          }
-          break;
-        case 'session':
-          storage.setItem('SESSION', v.trim());
-          settings.session = v.trim();
-          gptSay('session设置成功，你可以使用usage指令查询chatgpt的使用情况');
-          ask();
-          break;
-        case '':
-          gptSay('请输入指令');
-          showUsageTips();
-          break;
-        default:
-          gptSay('未知指令');
-          showUsageTips();
-          ask();
+            break;
+          case 'key':
+            storage.setItem('API_KEY', v);
+            settings.key = v;
+            gptSay('API KEY配置成功');
+            ask();
+            break;
+          case 'continuous':
+            if (['Y', 'N'].includes(v.toUpperCase())) {
+              storage.setItem('CONTINUOUS', v.toUpperCase());
+              gptSay('连续对话配置成功');
+              ask();
+            }
+            break;
+          case 'session':
+            storage.setItem('SESSION', v.trim());
+            settings.session = v.trim();
+            gptSay('session设置成功，你可以使用usage指令查询chatgpt的使用情况');
+            ask();
+            break;
+          case '':
+            gptSay('请输入指令');
+            showUsageTips();
+            break;
+          default:
+            gptSay('未知指令');
+            showUsageTips();
+            ask();
+        }
+        return;
       }
-      return;
-    }
 
-    switch (content.toLowerCase().trim()) {
-      case '?':
-      case '？':
-        showUsageTips();
-        ask();
-        return;
-      case 'exit':
-      case '\\q':
-      case 'q':
-        process.exit(0);
-      case 'clear':
-      case 'c':
-        clear();
-        gptSay('记录已清除');
-        console.clear();
-        ask();
-        return;
-      case 'aaa':
-        const v = await storage.getItem('CONTINUOUS');
-        const newV = v === 'Y' ? 'N' : 'Y';
-        await storage.setItem('CONTINUOUS', newV);
-        settings.continuous = newV;
-        gptSay(`已切换${settings.continuous === 'Y' ? '连续对话' : '单句对话'}模式`);
-        ask();
-        return;
-      case 'usage':
-        requestUsage(() => {
+      switch (content.toLowerCase().trim()) {
+        case '?':
+        case '？':
+          showUsageTips();
           ask();
-        });
-        return;
-      case 'reset':
-        await reset();
-        ask();
-        return;
-      case '':
-        gptSay('请输入问题后再回车');
-        ask();
-        return;
-    }
+          return;
+        case 'exit':
+        case '\\q':
+        case 'q':
+          process.exit(0);
+        case 'clear':
+        case 'c':
+          clear();
+          gptSay('记录已清除');
+          console.clear();
+          ask();
+          return;
+        case 'aaa':
+          const v = await storage.getItem('CONTINUOUS');
+          const newV = v === 'Y' ? 'N' : 'Y';
+          await storage.setItem('CONTINUOUS', newV);
+          settings.continuous = newV;
+          gptSay(
+            `已切换${settings.continuous === 'Y' ? '连续对话' : '单句对话'}模式`
+          );
+          ask();
+          return;
+        case 'usage':
+          requestUsage(() => {
+            ask();
+          });
+          return;
+        case 'reset':
+          await reset();
+          ask();
+          return;
+        case '':
+          gptSay('请输入问题后再回车');
+          ask();
+          return;
+      }
 
-    addContext(content);
-    requestGPT();
-  });
+      addContext(content);
+      requestGPT();
+    }
+  );
 }
 
 async function reset() {
@@ -231,8 +247,14 @@ function requestGPT() {
     strictSSL: false,
     rejectUnauthorized: false,
     followRedirect: false,
-    ...(settings.proxy ? { proxy: settings.proxy } : {}),
+    // ...(settings.proxy ? { proxy: settings.proxy } : {}),
   };
+  // 支持socks代理
+  if (settings.proxy && proxy) {
+    options.agent = proxy;
+  } else if (settings.proxy) {
+    options.proxy = settings.proxy;
+  }
 
   gptSay('处理中...');
 
@@ -293,7 +315,8 @@ function requestUsage(callback) {
       pragma: 'no-cache',
       'cache-control': 'no-cache',
       authorization: `Bearer ${settings.session}`,
-      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+      'user-agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
     },
     strictSSL: false,
     rejectUnauthorized: false,
@@ -306,12 +329,14 @@ function requestUsage(callback) {
     } else {
       try {
         const data = JSON.parse(body);
-        console.table([{
-          used: data.total_used,
-          available: data.total_available,
-          total: data.total_granted,
-        }]);
-      } catch(err) {
+        console.table([
+          {
+            used: data.total_used,
+            available: data.total_available,
+            total: data.total_granted,
+          },
+        ]);
+      } catch (err) {
         gptSay(err.message);
       }
     }
