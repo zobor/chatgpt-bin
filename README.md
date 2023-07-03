@@ -2,6 +2,8 @@
 
 基于 chatgpt 官方Open API的命令行，解决官网IP限制、连接不稳定等体验问题。
 
+当然也有在线免费的版本，支持Web和H5，地址：[https://www.bproxy.cn/chat](https://www.bproxy.cn/chat)
+
 ## 如何使用
 ```bash
 npm i -g chatgpt-bin
